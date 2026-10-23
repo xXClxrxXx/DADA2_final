@@ -68,4 +68,18 @@ sélection trop stricte au niveau du tronquage il se peut que nous aurions du ma
 données. Le tronquage ce fera donc à 160 base. 
 La sélection est donc de 240 à 160. 
 
+#Filtrer et tronquer
+Ici les fichier vont être lue et les filtre vont être apliquer. Les filtres sont
+les suivant: 
+- sélection des read à la longueur définit avec l'analyse des profil de qualité. 
+- les erreur probable (EE) ici le maximum est de deux 
+- un score de qualité pour chaque base. Ici si il est égale à 2 le read est 
+couper à cette base et si il ne correspond pas à la longueur définit plus tôt, 
+il est exclu. 
+```{r}
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+names(filtFs) <- sample.names
+names(filtRs) <- sample.names
+```
 
