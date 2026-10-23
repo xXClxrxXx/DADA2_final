@@ -3,20 +3,20 @@ title: "DADA2_Clara_Levrault"
 output: github_document
 ---
 
-#Première étape 
+#Installation DADA2
 Il faut installer dada2 pour pouvoir réaliser ce tutoriel. 
 ```{r}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("dada2", version = "3.23")
 ```
-#Etape deux: 
+#Chargement package
 Maintenant que c'est installer nous allons charger les packages, pour avoir 
 accès aux focntions. 
 ```{r}
 library(dada2); packageVersion("dada2")
 ```
-#Téléchargement des donner. 
+#Téléchargement des donner
 Je vais télécharger les données utiliser dans le tutoriel. Pour cela je vais utiliser le lien donné dans le tutoriel.
 ```{r}
 download.file("https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip",
@@ -45,5 +45,27 @@ sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 ```
 Ce chunck, va donc crée deux liste, une forwad et une reverse dans le même ordre avec 
 un nom pour chaque échantillon 
+
+#Profil de qualité 
+On va tracer un profil de qualité pour les forwad et les reverse. Cela va 
+permettre de définir où tronquer les reads pour la filtrage que nous allons 
+ensuite appliquer. 
+```{r}
+plotQualityProfile(fnFs[1:2])
+```
+Voici ceux pour les forwad. On peut voir que la qualité est bonne, le tronquage 
+se fera à 240. Je ne garde pas les 10 dernière bases car le singal ce brouille 
+un peu même si cel areste plutôt correcte. 
+
+```{r}
+plotQualityProfile(fnRs[1:2])
+```
+Et voici le profil des read reverse. Ici le signal est plus mauvais. Il chut 
+rapidement à partir de 150 base. Ici, on va prendre 10 base de plus pour avoir 
+la zone de chauvauchement entre les deux type de read. Si nous faisont une 
+sélection trop stricte au niveau du tronquage il se peut que nous aurions du mal 
+à les assembler dans la suite du tutoriel ou alors avoir une grande perte des
+données. Le tronquage ce fera donc à 160 base. 
+La sélection est donc de 240 à 160. 
 
 
