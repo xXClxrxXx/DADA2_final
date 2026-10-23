@@ -31,4 +31,19 @@ Et je vais maintenant définir le chemin dans lequel ce dossier sera stocker. Et
 path <- "/home/rstudio/DADA2_final/MiSeq_SOP" 
 list.files(path)
 ```
+#Création liste d'échantillon 
+Le fichier contient des séquence reverse et forward. Nous allons crée deux liste 
+une pour toute les séquence forward (égale à R1) et une pour les séquence revers
+(égale à R2). Ensuite nous allons découper le nom de la séquence pour ne garde 
+que le nom de l'échantillon. 
+```{r}
+
+fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
+
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+```
+Ce chunck, va donc crée deux liste, une forwad et une reverse dans le même ordre avec 
+un nom pour chaque échantillon 
+
 
