@@ -107,3 +107,21 @@ plotErrors(errF, nominalQ=TRUE)
 ```
 Graphique par type de subsitution et en fonction du score de qualité. 
 
+#Correction des erreurs
+Les modèles d'erreur crée au dessus va être appliquer au donnée pour ne garder 
+que les vrais variente biologique. 
+```{r}
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
+```
+Correction des forwad 
+```{r}
+dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+```
+Correction des reverses. 
+```{r}
+dadaFs[[1]]
+```
+Cela affiche un résultat, ici on peut voir que dans 1979 séquence unique d'un 
+échantillon, il y en avait seulement 128 qui sont des séquence sans erreur 
+explicable par DADA2. 
+
