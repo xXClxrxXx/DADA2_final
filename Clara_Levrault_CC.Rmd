@@ -148,4 +148,20 @@ nchar, qui correspond à la première ligne afficher nous permet de voir la
 longueur des séquences. On voit que c'est entre 251-255 ce qui d'après le 
 tutoriel correspond à l'interval attendue pour les amplicons de la région V4. 
 
-
+#Retirer les chimères
+Les chimères sont des séquence artificielle former pendant la PCR. Le but ici va 
+donc de retirer ces chimère qui ne correspondent à aucun organisme réel de 
+l'échantillon mais qui on été mise dans les ASV par DADA2 car il corrige les 
+erreur mais pas les chimères. 
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+```
+61 des ASV on été retirer sur 293 ce qui peut correspondre à une grande quantité 
+Voici donc une seconde analyse: 
+```{r}
+sum(seqtab.nochim)/sum(seqtab)
+```
+La nous regardons au niveau des read et non que les ASV. On vois donc ici que 
+environ 96% des read reste et que les chimères ne corresponde cas seulement 4%. 
+C'est un résultat bon. 
