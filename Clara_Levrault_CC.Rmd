@@ -181,3 +181,41 @@ head(track)
 On peut voir qu'il n'y a pas de chut brutal dans la conservation des reads. On
 peut donc dire qu'il n'y a pas de sélection trop stricte ou autre. 
 
+#Assigner la taxonomie 
+Nous allons comparer chaque ASV à une base de référence. Cela va permettre 
+d'identifier les ASV en leur attribuent un rang taxonomique. Choisir la base de 
+référence ce fait en fonction de ce que nous avons amplifier. Ici le tutoriel 
+nous donne le fichier à télécharger. 
+```{r}
+download.file("https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toGenus_trainset.fa.gz?download=1",
+              destfile = "silva_nr99_v138.2_toGenus_trainset.fa.gz", mode = "wb")
+```
+Je viens de télécharger le fichier et de le mettre dans mon répartoire. Je peux 
+maintenant l'utiliser. 
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/DADA2_final/silva_nr99_v138.2_toGenus_trainset.fa.gz", multithread=TRUE)
+```
+```{r}
+taxa.print <- taxa # Removing sequence rownames for display only
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+On peut voir que dans les échantillon il y a principalement des bacteriodota. 
+
+#Contrôle de justesse 
+On viens mesurer l'erreur du tutotriel sur un échantillon dont on connais déjà 
+la composition. C'est une étape de contrôle. 
+```{r}
+unqs.mock <- seqtab.nochim["Mock",]
+unqs.mock <- sort(unqs.mock[unqs.mock>0], decreasing=TRUE) # Drop ASVs absent in the Mock
+cat("DADA2 inferred", length(unqs.mock), "sample sequences present in the Mock community.\n")
+```
+Il y a été trouver 20 séquence qui font partie de cette échantillon fictif. 
+```{r}
+mock.ref <- getSequences(file.path(path, "HMP_MOCK.v35.fasta"))
+match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
+cat("Of those,", sum(match.ref), "were exact matches to the expected reference sequences.\n")
+```
+Les 20 séquence trouver conrresponde au séquence de référence. Il n'y a donc pas 
+d'erreur résiduelle dans ce tutoriel. 
+
