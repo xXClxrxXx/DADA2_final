@@ -219,3 +219,17 @@ cat("Of those,", sum(match.ref), "were exact matches to the expected reference s
 Les 20 séquence trouver conrresponde au séquence de référence. Il n'y a donc pas 
 d'erreur résiduelle dans ce tutoriel. 
 
+#Analyse avec phyloseq 
+Phyloseq est un puissant outil d'analyse pour les données sur le microbiome. Il 
+va permettre de regrouper toute les table que nous avons crée en un seul objet 
+avec en plus les métadonner utiliser dans le tutoriel. 
+Tout d'abord il faut télécharger phyloseq. 
+```{r}
+install.packages("igraph", type = "source") 
+BiocManager::install("phyloseq", update = FALSE)
+```
+On va maintenant charger les packages. 
+```{r}
+library(phyloseq); packageVersion("phyloseq")
+```
+
