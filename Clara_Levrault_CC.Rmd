@@ -11,13 +11,13 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("dada2", version = "3.23")
 ```
 #Chargement package
-Maintenant que c'est installer nous allons charger les packages, pour avoir 
-accès aux focntions. 
+Maintenant que c'est installé, nous allons charger les packages, pour avoir 
+accès aux fonctions.
 ```{r}
 library(dada2); packageVersion("dada2")
 ```
 #Téléchargement des donner
-Je vais télécharger les données utiliser dans le tutoriel. Pour cela je vais 
+Je vais télécharger les données utilisées dans le tutoriel. Pour cela je vais 
 utiliser le lien donné dans le tutoriel.
 ```{r}
 download.file("https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip",
@@ -27,16 +27,15 @@ Je vais maintenant l'extraire pour pouvoir l'utiliser.
 ```{r}
 unzip("miseqsopdata.zip")
 ```
-Et je vais maintenant définir le chemin dans lequel ce dossier sera stocker. 
-Et lister le contenue du fichier. 
+Et je vais maintenant définir le chemin dans lequel ce dossier sera stocké. 
+Et lister le contenu du fichier. 
 ```{r}
 path <- "/home/rstudio/DADA2_final/MiSeq_SOP" 
 list.files(path)
 ```
 #Création liste d'échantillon 
-Le fichier contient des séquence reverse et forward. Nous allons crée deux liste 
-une pour toute les séquence forward (égale à R1) et une pour les séquence revers
-(égale à R2). Ensuite nous allons découper le nom de la séquence pour ne garde 
+Le fichier contient des séquences reverse et forward. Nous allons créer deux listes, 
+une pour toutes les séquences forward (égale à R1) et une pour les séquences reverse(égale à R2). Ensuite nous allons découper le nom de la séquence pour ne garder 
 que le nom de l'échantillon. 
 ```{r}
 
@@ -45,38 +44,38 @@ fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
 
 sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 ```
-Ce chunck, va donc crée deux liste, une forwad et une reverse dans le même ordre avec 
-un nom pour chaque échantillon 
+Ce chunck, va donc créer deux listes, une forwad et une reverse dans le même ordre, avec 
+un nom pour chaque échantillon.
 
 #Profil de qualité 
 On va tracer un profil de qualité pour les forwad et les reverse. Cela va 
-permettre de définir où tronquer les reads pour la filtrage que nous allons 
+permettre de définir où tronquer les reads pour le filtrage que nous allons 
 ensuite appliquer. 
 ```{r}
 plotQualityProfile(fnFs[1:2])
 ```
 Voici ceux pour les forwad. On peut voir que la qualité est bonne, le tronquage 
-se fera à 240. Je ne garde pas les 10 dernière bases car le singal ce brouille 
-un peu même si cel areste plutôt correcte. 
+se fera à 240. Je ne garde pas les 10 dernières bases car le signal se brouille 
+un peu, même si cela reste plutôt correct. 
 
 ```{r}
 plotQualityProfile(fnRs[1:2])
 ```
-Et voici le profil des read reverse. Ici le signal est plus mauvais. Il chut 
-rapidement à partir de 150 base. Ici, on va prendre 10 base de plus pour avoir 
-la zone de chauvauchement entre les deux type de read. Si nous faisont une 
-sélection trop stricte au niveau du tronquage il se peut que nous aurions du mal 
-à les assembler dans la suite du tutoriel ou alors avoir une grande perte des
-données. Le tronquage ce fera donc à 160 base. 
+Et voici le profil des read reverse. Ici le signal est plus mauvais. Il chute 
+rapidement à partir de 150 bases. Ici, on va prendre 10 bases de plus pour avoir 
+la zone de chevauchement entre les deux types de reads. Si nous faisons une 
+sélection trop stricte au niveau du tronquage il se peut que nous ayons du mal 
+à les assembler dans la suite du tutoriel ou alors que nous ayons une grande perte de
+données. Le tronquage se fera donc à 160 base. 
 La sélection est donc de 240 à 160. 
 
 #Filtrer et tronquer
-Ici les fichier vont être lue et les filtre vont être apliquer. Les filtres sont
-les suivant: 
-- sélection des read à la longueur définit avec l'analyse des profil de qualité. 
-- les erreur probable (EE) ici le maximum est de deux 
-- un score de qualité pour chaque base. Ici si il est égale à 2 le read est 
-couper à cette base et si il ne correspond pas à la longueur définit plus tôt, 
+Ici les fichiers vont être lus et les filtres vont être appliqués. Les filtres sont
+les suivants : 
+- sélection des reads à la longueur définie avec l'analyse des profils de qualité 
+- les ererreurs probables (EE),ci le maximum est de deux 
+- un score de qualité pour chaque base. IcIci, s'ilst égégal 2 le read est 
+cocoupé cette base et, s'ile correspond pas à la longueur défidéfinies tôt, 
 il est exclu. 
 ```{r}
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
@@ -84,7 +83,7 @@ filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
 ```
-Ici on définis les filtre et maintenant on les applique : 
+Ici on définit les filtres et, maintenant, on les applique : 
 ```{r}
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
               maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
@@ -93,9 +92,9 @@ head(out)
 ```
 
 #Crée le modèle d'erreur 
-Cela permet d'estimer à partir de nos donnée le probabilité de chaque 
-substitution. Les commande vont permetre de donner le modéle d'erreur qui permet
-de distinguer les erreur de la vraie variante biologique. 
+Cela permet d'estimer, à partir de nos données, la probabilité de chaque 
+substitution. Les commandes vont permettre de donner le modèle d'erreur qui permet
+de distinguer les erreurs de la vraie variante biologique. 
 ```{r}
 errF <- learnErrors(filtFs, multithread=TRUE)
 ```
@@ -107,11 +106,11 @@ Création du modèle pour les reverse.
 ```{r}
 plotErrors(errF, nominalQ=TRUE)
 ```
-Graphique par type de subsitution et en fonction du score de qualité. 
+Graphique par type de substitution et en fonction du score de qualité. 
 
 #Correction des erreurs
-Les modèles d'erreur crée au dessus va être appliquer au donnée pour ne garder 
-que les vrais variente biologique. 
+Les modèles d'erreur créés ci-dessus vont être appliqués aux données pour ne garder 
+que les vraies variantes biologiques. 
 ```{r}
 dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
 ```
@@ -123,14 +122,14 @@ Correction des reverses.
 ```{r}
 dadaFs[[1]]
 ```
-Cela affiche un résultat, ici on peut voir que dans 1979 séquence unique d'un 
-échantillon, il y en avait seulement 128 qui sont des séquence sans erreur 
+Cela affiche un résultat, ici on peut voir que dans 1979 séquences uniques d'un 
+échantillon, il y en avait seulement 128 qui sont des sséquencessans erreur 
 explicable par DADA2. 
 
 #Fusion des reads
-Les amplicons vont être reconstituer en entier. Ici c'est un peu une étape de 
-contrôle. Si peut de read on fussionner alors cela veut probalement dire que nous
-n'avons pas sélectionner la zone de recouvrement pendant le tronquage. 
+Les amplicons vont être reconstitués en entier. Ici, c'est un peu une étape de 
+contrôle. Si peu de reads ont fusionné, alors cela veut probablement dire que nous
+n'avons pas sélectionné la zone de recouvrement pendant le tronquage. 
 ```{r}
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 
@@ -144,33 +143,33 @@ dim(seqtab)
 ```{r}
 table(nchar(getSequences(seqtab)))
 ```
-nchar, qui correspond à la première ligne afficher nous permet de voir la 
-longueur des séquences. On voit que c'est entre 251-255 ce qui d'après le 
-tutoriel correspond à l'interval attendue pour les amplicons de la région V4. 
+nchar, qui correspond à la première ligne affichée, nous permet de voir la 
+longueur des séquences. On voit qu'elle est comprise entre 251-255 ce qui, d'après le 
+tutoriel, correspond à l'intervalle attendu pour les amplicons de la région V4. 
 
 #Retirer les chimères
-Les chimères sont des séquence artificielle former pendant la PCR. Le but ici va 
-donc de retirer ces chimère qui ne correspondent à aucun organisme réel de 
-l'échantillon mais qui on été mise dans les ASV par DADA2 car il corrige les 
-erreur mais pas les chimères. 
+Les chimères sont des séquences artificielles formées pendant la PCR. Le but ici va 
+donc être de retirer ces chimères qui ne correspondent à aucun organisme réel de 
+l'échantillon mais qui ont été mises dans les ASV par DADA2 car il corrige les 
+erreurs, mais pas les chimères. 
 ```{r}
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 dim(seqtab.nochim)
 ```
-61 des ASV on été retirer sur 293 ce qui peut correspondre à une grande quantité 
+61 des ASV ont été retirés sur 293 ce qui peut correspondre à une grande quantité.
 Voici donc une seconde analyse: 
 ```{r}
 sum(seqtab.nochim)/sum(seqtab)
 ```
-La nous regardons au niveau des read et non que les ASV. On vois donc ici que 
-environ 96% des read reste et que les chimères ne corresponde cas seulement 4%. 
-C'est un résultat bon. 
+Là, nous regardons au niveau des read et non que les ASV. On voit donc ici que 
+environ 96% des reads restent et que les chimères ne correspondent qu'à seulement 4%. 
+C'est un bon résultat. 
 
 #Tableau bilan 
-Cela nous permet de faire un contrôle de chaque étapes. Si il y a un grand saut 
-dans l'exclusion de read cela nous permet de voir quelle étape et d'aller vérifier
-à ce niveau la. Ce tableau permet de réaliser une correction de notre analyse sans 
-devoir tout recommencer car on peut identifier l'étaper où il y a eu un problème. 
+Cela nous permet de faire un contrôle de chaque étape. S'il y a un grand saut 
+dans l'exclusion de reads, cela nous permet de voir quelle étape et d'aller vérifier
+à ce niveau-là. Ce tableau permet de réaliser une correction de notre analyse sans 
+devoir tout recommencer car on peut identifier l'étape où il y a eu un problème. 
 ```{r}
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
@@ -178,19 +177,19 @@ colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "n
 rownames(track) <- sample.names
 head(track)
 ```
-On peut voir qu'il n'y a pas de chut brutal dans la conservation des reads. On
+On peut voir qu'il n'y a pas de chute brutale dans la conservation des reads. On
 peut donc dire qu'il n'y a pas de sélection trop stricte ou autre. 
 
 #Assigner la taxonomie 
 Nous allons comparer chaque ASV à une base de référence. Cela va permettre 
-d'identifier les ASV en leur attribuent un rang taxonomique. Choisir la base de 
-référence ce fait en fonction de ce que nous avons amplifier. Ici le tutoriel 
+d'identifier les ASV en leur attribuant un rang taxonomique. Choisir la base de 
+référence se fait en fonction de ce que nous avons amplifié. Ici, le tutoriel 
 nous donne le fichier à télécharger. 
 ```{r}
 download.file("https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toGenus_trainset.fa.gz?download=1",
               destfile = "silva_nr99_v138.2_toGenus_trainset.fa.gz", mode = "wb")
 ```
-Je viens de télécharger le fichier et de le mettre dans mon répartoire. Je peux 
+Je viens de télécharger le fichier et de le mettre dans mon répertoire. Je peux 
 maintenant l'utiliser. 
 ```{r}
 taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/DADA2_final/silva_nr99_v138.2_toGenus_trainset.fa.gz", multithread=TRUE)
@@ -200,30 +199,30 @@ taxa.print <- taxa # Removing sequence rownames for display only
 rownames(taxa.print) <- NULL
 head(taxa.print)
 ```
-On peut voir que dans les échantillon il y a principalement des bacteriodota. 
+On peut voir que dans les échantillons, il y a principalement des Bacteroidota.
 
 #Contrôle de justesse 
-On viens mesurer l'erreur du tutotriel sur un échantillon dont on connais déjà 
+On vient mesurer l'erreur du tutoriel sur un échantillon dont on connaît déjà 
 la composition. C'est une étape de contrôle. 
 ```{r}
 unqs.mock <- seqtab.nochim["Mock",]
 unqs.mock <- sort(unqs.mock[unqs.mock>0], decreasing=TRUE) # Drop ASVs absent in the Mock
 cat("DADA2 inferred", length(unqs.mock), "sample sequences present in the Mock community.\n")
 ```
-Il y a été trouver 20 séquence qui font partie de cette échantillon fictif. 
+Il y a été trouvé 20 séquences qui font partie de cet échantillon fictif. 
 ```{r}
 mock.ref <- getSequences(file.path(path, "HMP_MOCK.v35.fasta"))
 match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
 cat("Of those,", sum(match.ref), "were exact matches to the expected reference sequences.\n")
 ```
-Les 20 séquence trouver conrresponde au séquence de référence. Il n'y a donc pas 
+Les 20 séquences trouvées correspondent aux séquences de référence. Il n'y a donc pas 
 d'erreur résiduelle dans ce tutoriel. 
 
 #Analyse avec phyloseq 
 Phyloseq est un puissant outil d'analyse pour les données sur le microbiome. Il 
-va permettre de regrouper toute les table que nous avons crée en un seul objet 
-avec en plus les métadonner utiliser dans le tutoriel. 
-Tout d'abord il faut télécharger phyloseq. 
+va permettre de regrouper toutes les tables que nous avons créées en un seul objet, 
+avec en plus les métadonnées utilisées dans le tutoriel. 
+Tout d'abord, il faut télécharger phyloseq. 
 ```{r}
 install.packages("igraph", type = "source") 
 BiocManager::install("phyloseq", update = FALSE)
@@ -252,7 +251,7 @@ library(ggplot2); packageVersion("ggplot2")
 ```{r}
 theme_set(theme_bw())
 ```
-On va maintenant construire un tableau des métadonnées. 
+On va maintenant construire un tableau de métadonnées.
 ```{r}
 samples.out <- rownames(seqtab.nochim)
 subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
@@ -264,9 +263,9 @@ samdf$When <- "Early"
 samdf$When[samdf$Day>100] <- "Late"
 rownames(samdf) <- samples.out
 ```
-Ensuite nous allons construire un objet phyloseq directement à partir des table 
-fait avec DADA2. Cela va tout reprendre mise à part l'échantillon fictif que nous
-avions utilisé pour la contrôle de justesse. 
+Ensuite, nous allons construire un objet phyloseq directement à partir des tables 
+faites avec DADA2. Cela va tout reprendre, mis à part l'échantillon fictif que nous
+avions utilisé pour le contrôle de justesse. 
 ```{r}
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
                sample_data(samdf),
@@ -280,20 +279,20 @@ ps <- merge_phyloseq(ps, dna)
 taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
 ps
 ```
-Cette dernière commande permet de donner des nom court à nos ASV, ce qui rend 
-plus simple l'analyse des graphique/tableau que nous allons crée avec physoleq. 
-Les séquence entière son stocker dans un fichier. 
+Cette dernière commande permet de donner des noms courts à nos ASV, ce qui rend 
+plus simple l'analyse des graphiques/tableau que nous allons crée avec phyloseq. 
+Les séquences entières sont stockées dans un fichier. 
 
-On peut maintenant commencer à crée des graphqiue avec phyloseq et a analyser 
+On peut maintenant commencer à créer des graphiques avec phyloseq et a analyser 
 nos données avec cet outil. 
 ```{r}
 plot_richness(ps, x="Day", measures=c("Shannon", "Simpson"), color="When")
 ```
 Ce graphique nous permet d'observer la diversité alpha dans chaque échantillon. 
-Il calcul les indices Shannon et Simpson. L'indice Shannon mesure la diversité 
+Il calcule les indices Shannon et Simpson. L'indice Shannon mesure la diversité 
 d’un échantillon avec une sensibilité plus forte aux taxa rares. 
 Et l'indice Simpson mesure la diversité en donnant plus de poids aux taxa 
-dominants. On peut voir qu'il n'a pas de différence systèmatique entre 
+dominants. On peut voir qu'il n'a pas de différence systématique entre 
 Early et Late. 
 
 ```{r}
@@ -301,21 +300,21 @@ ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
 ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
 plot_ordination(ps.prop, ord.nmds.bray, color="When", title="Bray NMDS")
 ```
-Ici ce graph nous permet de voir si les groupe se regroupe autour d'une variable. 
-C'est une ordination, cela veut dire que plus les point son proche moins ils ont
-de différence. 
-En regardant le graphique on peut voir que les points sont éloigner. Il y a donc 
+Ici, ce graphe nous permet de voir si les groupes se regroupent autour 
+d'une variable. C'est une ordination, cela veut dire que plus les points 
+son proche moins ils ont de différence. 
+En regardant le graphique, on peut voir que les points sont éloignés. Il y a donc 
 une nette différence enter Early et Late. 
 
-Cherchon ce qui explique cette différence, pour cela on trace un nouveau graph: 
+Cherchons ce qui explique cette différence, pour cela, on trace un nouveau graphe: 
 ```{r}
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 plot_bar(ps.top20, x="Day", fill="Family") + facet_wrap(~When, scales="free_x")
 ```
-Il nous permet d'observer la répartition taxonomique des 20 première séqeunce. 
-On peut voir ici qu'aucun élément ne permis d'expliquer la différence observer 
+Il nous permet d'observer la répartition taxonomique des 20 premières séquences. 
+On peut voir ici qu'aucun élément ne permit d'expliquer la différence observée
 plus tôt. 
 
 
