@@ -232,4 +232,24 @@ On va maintenant charger les packages.
 ```{r}
 library(phyloseq); packageVersion("phyloseq")
 ```
+```{r}
+library(igraph)
+```
+```{r}
+BiocManager::install("phyloseq", update = FALSE)
+library(phyloseq); packageVersion("phyloseq")
+```
+Il y a eu un beug à l'installation de phyloseq. J'ai donc d'abord vérifier 
+qu'igraph été bien installer car physloseq en à besoin pour fonctionner puis j'ai 
+réintaller phyloseq. 
+Faisons la suite du chargement des packages. 
+```{r}
+library(Biostrings); packageVersion("Biostrings")
+```
+```{r}
+library(ggplot2); packageVersion("ggplot2")
+```
+```{r}
+theme_set(theme_bw())
+```
 
