@@ -165,3 +165,19 @@ sum(seqtab.nochim)/sum(seqtab)
 La nous regardons au niveau des read et non que les ASV. On vois donc ici que 
 environ 96% des read reste et que les chimères ne corresponde cas seulement 4%. 
 C'est un résultat bon. 
+
+#Tableau bilan 
+Cela nous permet de faire un contrôle de chaque étapes. Si il y a un grand saut 
+dans l'exclusion de read cela nous permet de voir quelle étape et d'aller vérifier
+à ce niveau la. Ce tableau permet de réaliser une correction de notre analyse sans 
+devoir tout recommencer car on peut identifier l'étaper où il y a eu un problème. 
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+On peut voir qu'il n'y a pas de chut brutal dans la conservation des reads. On
+peut donc dire qu'il n'y a pas de sélection trop stricte ou autre. 
+
