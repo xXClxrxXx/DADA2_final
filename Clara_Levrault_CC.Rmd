@@ -137,3 +137,15 @@ mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 head(mergers[[1]])
 ```
 #Construction de la table ASV 
+```{r}
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+```
+```{r}
+table(nchar(getSequences(seqtab)))
+```
+nchar, qui correspond à la première ligne afficher nous permet de voir la 
+longueur des séquences. On voit que c'est entre 251-255 ce qui d'après le 
+tutoriel correspond à l'interval attendue pour les amplicons de la région V4. 
+
+
