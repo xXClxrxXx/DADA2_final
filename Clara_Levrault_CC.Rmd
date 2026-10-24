@@ -82,4 +82,28 @@ filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
 ```
+Ici on définis les filtre et maintenant on les applique : 
+```{r}
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
+              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=FALSE)
+head(out)
+```
+
+#Crée le modèle d'erreur 
+Cela permet d'estimer à partir de nos donnée le probabilité de chaque 
+substitution. Les commande vont permetre de donner le modéle d'erreur qui permet
+de distinguer les erreur de la vraie variante biologique. 
+```{r}
+errF <- learnErrors(filtFs, multithread=TRUE)
+```
+Création du modèle pour les forwad. 
+```{r}
+errR <- learnErrors(filtRs, multithread=TRUE)
+```
+Création du modèle pour les reverse. 
+```{r}
+plotErrors(errF, nominalQ=TRUE)
+```
+Graphique par type de subsitution et en fonction du score de qualité. 
 
