@@ -17,7 +17,8 @@ accès aux focntions.
 library(dada2); packageVersion("dada2")
 ```
 #Téléchargement des donner
-Je vais télécharger les données utiliser dans le tutoriel. Pour cela je vais utiliser le lien donné dans le tutoriel.
+Je vais télécharger les données utiliser dans le tutoriel. Pour cela je vais 
+utiliser le lien donné dans le tutoriel.
 ```{r}
 download.file("https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip",
               destfile = "miseqsopdata.zip", mode = "wb")
@@ -26,7 +27,8 @@ Je vais maintenant l'extraire pour pouvoir l'utiliser.
 ```{r}
 unzip("miseqsopdata.zip")
 ```
-Et je vais maintenant définir le chemin dans lequel ce dossier sera stocker. Et lister le contenue du fichier. 
+Et je vais maintenant définir le chemin dans lequel ce dossier sera stocker. 
+Et lister le contenue du fichier. 
 ```{r}
 path <- "/home/rstudio/DADA2_final/MiSeq_SOP" 
 list.files(path)
@@ -125,3 +127,13 @@ Cela affiche un résultat, ici on peut voir que dans 1979 séquence unique d'un
 échantillon, il y en avait seulement 128 qui sont des séquence sans erreur 
 explicable par DADA2. 
 
+#Fusion des reads
+Les amplicons vont être reconstituer en entier. Ici c'est un peu une étape de 
+contrôle. Si peut de read on fussionner alors cela veut probalement dire que nous
+n'avons pas sélectionner la zone de recouvrement pendant le tronquage. 
+```{r}
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+
+head(mergers[[1]])
+```
+#Construction de la table ASV 
