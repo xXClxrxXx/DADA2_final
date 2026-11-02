@@ -73,9 +73,9 @@ La sélection est donc de 240 à 160.
 Ici les fichiers vont être lus et les filtres vont être appliqués. Les filtres sont
 les suivants : 
 - sélection des reads à la longueur définie avec l'analyse des profils de qualité 
-- les ererreurs probables (EE),ci le maximum est de deux 
-- un score de qualité pour chaque base. IcIci, s'ilst égégal 2 le read est 
-cocoupé cette base et, s'ile correspond pas à la longueur défidéfinies tôt, 
+- les ererreurs probables (EE), ici le maximum est de deux 
+- un score de qualité pour chaque base. Ici, s'il est égal à 2 le read est 
+coupé à cette base et, s'il ne correspond pas à la longueur définies plus tôt, 
 il est exclu. 
 ```{r}
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
