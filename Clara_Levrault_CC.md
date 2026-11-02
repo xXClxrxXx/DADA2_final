@@ -1,0 +1,782 @@
+DADA2_Clara_Levrault
+================
+
+\#Installation DADA2 Il faut installer dada2 pour pouvoir réaliser ce
+tutoriel.
+
+``` r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("dada2", version = "3.23")
+```
+
+    ## 'getOption("repos")' replaces Bioconductor standard repositories, see
+    ## 'help("repositories", package = "BiocManager")' for details.
+    ## Replacement repositories:
+    ##     CRAN: https://p3m.dev/cran/__linux__/noble/latest
+
+    ## Bioconductor version 3.23 (BiocManager 1.30.27), R 4.6.1 (2026-06-24)
+
+    ## Warning: package(s) not installed when version(s) same as or greater than current; use
+    ##   `force = TRUE` to re-install: 'dada2'
+
+    ## Installation paths not writeable, unable to update packages
+    ##   path: /usr/local/lib/R/library
+    ##   packages:
+    ##     class, cluster, foreign, KernSmooth, lattice, MASS, Matrix, nlme, nnet,
+    ##     spatial, survival
+
+    ## Old packages: 'arrow', 'duckdb', 'gargle', 'googledrive', 'googlesheets4'
+
+\#Chargement package Maintenant que c’est installé, nous allons charger
+les packages, pour avoir accès aux fonctions.
+
+``` r
+library(dada2); packageVersion("dada2")
+```
+
+    ## Loading required package: Rcpp
+
+    ## [1] '1.40.0'
+
+\#Téléchargement des donner Je vais télécharger les données utilisées
+dans le tutoriel. Pour cela je vais utiliser le lien donné dans le
+tutoriel.
+
+``` r
+download.file("https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip",
+              destfile = "miseqsopdata.zip", mode = "wb")
+```
+
+Je vais maintenant l’extraire pour pouvoir l’utiliser.
+
+``` r
+unzip("miseqsopdata.zip")
+```
+
+Et je vais maintenant définir le chemin dans lequel ce dossier sera
+stocké. Et lister le contenu du fichier.
+
+``` r
+path <- "/home/rstudio/DADA2_final/MiSeq_SOP" 
+list.files(path)
+```
+
+    ##  [1] "F3D0_S188_L001_R1_001.fastq"   "F3D0_S188_L001_R2_001.fastq"  
+    ##  [3] "F3D1_S189_L001_R1_001.fastq"   "F3D1_S189_L001_R2_001.fastq"  
+    ##  [5] "F3D141_S207_L001_R1_001.fastq" "F3D141_S207_L001_R2_001.fastq"
+    ##  [7] "F3D142_S208_L001_R1_001.fastq" "F3D142_S208_L001_R2_001.fastq"
+    ##  [9] "F3D143_S209_L001_R1_001.fastq" "F3D143_S209_L001_R2_001.fastq"
+    ## [11] "F3D144_S210_L001_R1_001.fastq" "F3D144_S210_L001_R2_001.fastq"
+    ## [13] "F3D145_S211_L001_R1_001.fastq" "F3D145_S211_L001_R2_001.fastq"
+    ## [15] "F3D146_S212_L001_R1_001.fastq" "F3D146_S212_L001_R2_001.fastq"
+    ## [17] "F3D147_S213_L001_R1_001.fastq" "F3D147_S213_L001_R2_001.fastq"
+    ## [19] "F3D148_S214_L001_R1_001.fastq" "F3D148_S214_L001_R2_001.fastq"
+    ## [21] "F3D149_S215_L001_R1_001.fastq" "F3D149_S215_L001_R2_001.fastq"
+    ## [23] "F3D150_S216_L001_R1_001.fastq" "F3D150_S216_L001_R2_001.fastq"
+    ## [25] "F3D2_S190_L001_R1_001.fastq"   "F3D2_S190_L001_R2_001.fastq"  
+    ## [27] "F3D3_S191_L001_R1_001.fastq"   "F3D3_S191_L001_R2_001.fastq"  
+    ## [29] "F3D5_S193_L001_R1_001.fastq"   "F3D5_S193_L001_R2_001.fastq"  
+    ## [31] "F3D6_S194_L001_R1_001.fastq"   "F3D6_S194_L001_R2_001.fastq"  
+    ## [33] "F3D7_S195_L001_R1_001.fastq"   "F3D7_S195_L001_R2_001.fastq"  
+    ## [35] "F3D8_S196_L001_R1_001.fastq"   "F3D8_S196_L001_R2_001.fastq"  
+    ## [37] "F3D9_S197_L001_R1_001.fastq"   "F3D9_S197_L001_R2_001.fastq"  
+    ## [39] "filtered"                      "HMP_MOCK.v35.fasta"           
+    ## [41] "Mock_S280_L001_R1_001.fastq"   "Mock_S280_L001_R2_001.fastq"  
+    ## [43] "mouse.dpw.metadata"            "mouse.time.design"            
+    ## [45] "stability.batch"               "stability.files"
+
+\#Création liste d’échantillon Le fichier contient des séquences reverse
+et forward. Nous allons créer deux listes, une pour toutes les séquences
+forward (égale à R1) et une pour les séquences reverse(égale à R2).
+Ensuite nous allons découper le nom de la séquence pour ne garder que le
+nom de l’échantillon.
+
+``` r
+fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
+
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+```
+
+Ce chunck, va donc créer deux listes, une forwad et une reverse dans le
+même ordre, avec un nom pour chaque échantillon.
+
+\#Profil de qualité On va tracer un profil de qualité pour les forwad et
+les reverse. Cela va permettre de définir où tronquer les reads pour le
+filtrage que nous allons ensuite appliquer.
+
+``` r
+plotQualityProfile(fnFs[1:2])
+```
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+Voici ceux pour les forwad. On peut voir que la qualité est bonne, le
+tronquage se fera à 240. Je ne garde pas les 10 dernières bases car le
+signal se brouille un peu, même si cela reste plutôt correct.
+
+``` r
+plotQualityProfile(fnRs[1:2])
+```
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-8-1.png)<!-- --> Et
+voici le profil des read reverse. Ici le signal est plus mauvais. Il
+chute rapidement à partir de 150 bases. Ici, on va prendre 10 bases de
+plus pour avoir la zone de chevauchement entre les deux types de reads.
+Si nous faisons une sélection trop stricte au niveau du tronquage il se
+peut que nous ayons du mal à les assembler dans la suite du tutoriel ou
+alors que nous ayons une grande perte de données. Le tronquage se fera
+donc à 160 base. La sélection est donc de 240 à 160.
+
+\#Filtrer et tronquer Ici les fichiers vont être lus et les filtres vont
+être appliqués. Les filtres sont les suivants : - sélection des reads à
+la longueur définie avec l’analyse des profils de qualité - les
+ererreurs probables (EE), ici le maximum est de deux - un score de
+qualité pour chaque base. Ici, s’il est égal à 2 le read est coupé à
+cette base et, s’il ne correspond pas à la longueur définies plus tôt,
+il est exclu.
+
+``` r
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+names(filtFs) <- sample.names
+names(filtRs) <- sample.names
+```
+
+Ici on définit les filtres et, maintenant, on les applique :
+
+``` r
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
+              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=FALSE)
+head(out)
+```
+
+    ##                               reads.in reads.out
+    ## F3D0_S188_L001_R1_001.fastq       7793      7113
+    ## F3D1_S189_L001_R1_001.fastq       5869      5299
+    ## F3D141_S207_L001_R1_001.fastq     5958      5463
+    ## F3D142_S208_L001_R1_001.fastq     3183      2914
+    ## F3D143_S209_L001_R1_001.fastq     3178      2941
+    ## F3D144_S210_L001_R1_001.fastq     4827      4312
+
+\#Crée le modèle d’erreur Cela permet d’estimer, à partir de nos
+données, la probabilité de chaque substitution. Les commandes vont
+permettre de donner le modèle d’erreur qui permet de distinguer les
+erreurs de la vraie variante biologique.
+
+``` r
+errF <- learnErrors(filtFs, multithread=TRUE)
+```
+
+    ## 33514080 total bases in 139642 reads from 20 samples will be used for learning the error rates.
+
+Création du modèle pour les forwad.
+
+``` r
+errR <- learnErrors(filtRs, multithread=TRUE)
+```
+
+    ## 22342720 total bases in 139642 reads from 20 samples will be used for learning the error rates.
+
+Création du modèle pour les reverse.
+
+``` r
+plotErrors(errF, nominalQ=TRUE)
+```
+
+    ## Warning in scale_y_log10(): log-10 transformation introduced infinite values.
+
+    ## Warning: Removed 164 rows containing missing values or values outside the scale range
+    ## (`geom_line()`).
+    ## Removed 164 rows containing missing values or values outside the scale range
+    ## (`geom_line()`).
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+Graphique par type de substitution et en fonction du score de qualité.
+
+\#Correction des erreurs Les modèles d’erreur créés ci-dessus vont être
+appliqués aux données pour ne garder que les vraies variantes
+biologiques.
+
+``` r
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
+```
+
+    ## Sample 1 - 7113 reads in 1979 unique sequences.
+    ## Sample 2 - 5299 reads in 1639 unique sequences.
+    ## Sample 3 - 5463 reads in 1477 unique sequences.
+    ## Sample 4 - 2914 reads in 904 unique sequences.
+    ## Sample 5 - 2941 reads in 939 unique sequences.
+    ## Sample 6 - 4312 reads in 1267 unique sequences.
+    ## Sample 7 - 6741 reads in 1756 unique sequences.
+    ## Sample 8 - 4560 reads in 1438 unique sequences.
+    ## Sample 9 - 15637 reads in 3590 unique sequences.
+    ## Sample 10 - 11413 reads in 2762 unique sequences.
+    ## Sample 11 - 12017 reads in 3021 unique sequences.
+    ## Sample 12 - 5032 reads in 1566 unique sequences.
+    ## Sample 13 - 18075 reads in 3707 unique sequences.
+    ## Sample 14 - 6250 reads in 1479 unique sequences.
+    ## Sample 15 - 4052 reads in 1195 unique sequences.
+    ## Sample 16 - 7369 reads in 1832 unique sequences.
+    ## Sample 17 - 4765 reads in 1183 unique sequences.
+    ## Sample 18 - 4871 reads in 1382 unique sequences.
+    ## Sample 19 - 6504 reads in 1709 unique sequences.
+    ## Sample 20 - 4314 reads in 897 unique sequences.
+
+Correction des forwad
+
+``` r
+dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+```
+
+    ## Sample 1 - 7113 reads in 1660 unique sequences.
+    ## Sample 2 - 5299 reads in 1349 unique sequences.
+    ## Sample 3 - 5463 reads in 1335 unique sequences.
+    ## Sample 4 - 2914 reads in 853 unique sequences.
+    ## Sample 5 - 2941 reads in 880 unique sequences.
+    ## Sample 6 - 4312 reads in 1286 unique sequences.
+    ## Sample 7 - 6741 reads in 1803 unique sequences.
+    ## Sample 8 - 4560 reads in 1265 unique sequences.
+    ## Sample 9 - 15637 reads in 3414 unique sequences.
+    ## Sample 10 - 11413 reads in 2522 unique sequences.
+    ## Sample 11 - 12017 reads in 2771 unique sequences.
+    ## Sample 12 - 5032 reads in 1415 unique sequences.
+    ## Sample 13 - 18075 reads in 3290 unique sequences.
+    ## Sample 14 - 6250 reads in 1390 unique sequences.
+    ## Sample 15 - 4052 reads in 1134 unique sequences.
+    ## Sample 16 - 7369 reads in 1635 unique sequences.
+    ## Sample 17 - 4765 reads in 1084 unique sequences.
+    ## Sample 18 - 4871 reads in 1161 unique sequences.
+    ## Sample 19 - 6504 reads in 1502 unique sequences.
+    ## Sample 20 - 4314 reads in 732 unique sequences.
+
+Correction des reverses.
+
+``` r
+dadaFs[[1]]
+```
+
+    ## dada-class: object describing DADA2 denoising results
+    ## 128 sequence variants were inferred from 1979 input unique sequences.
+    ## Key parameters: OMEGA_A = 1e-40, OMEGA_C = 1e-40, BAND_SIZE = 16
+
+Cela affiche un résultat, ici on peut voir que dans 1979 séquences
+uniques d’un échantillon, il y en avait seulement 128 qui sont des
+sséquencessans erreur explicable par DADA2.
+
+\#Fusion des reads Les amplicons vont être reconstitués en entier. Ici,
+c’est un peu une étape de contrôle. Si peu de reads ont fusionné, alors
+cela veut probablement dire que nous n’avons pas sélectionné la zone de
+recouvrement pendant le tronquage.
+
+``` r
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+```
+
+    ## 6540 paired-reads (in 107 unique pairings) successfully merged out of 6891 (in 197 pairings) input.
+
+    ## 5028 paired-reads (in 101 unique pairings) successfully merged out of 5190 (in 157 pairings) input.
+
+    ## 4986 paired-reads (in 81 unique pairings) successfully merged out of 5267 (in 166 pairings) input.
+
+    ## 2595 paired-reads (in 52 unique pairings) successfully merged out of 2754 (in 108 pairings) input.
+
+    ## 2553 paired-reads (in 60 unique pairings) successfully merged out of 2785 (in 119 pairings) input.
+
+    ## 3646 paired-reads (in 55 unique pairings) successfully merged out of 4109 (in 157 pairings) input.
+
+    ## 6079 paired-reads (in 81 unique pairings) successfully merged out of 6514 (in 198 pairings) input.
+
+    ## 3968 paired-reads (in 91 unique pairings) successfully merged out of 4388 (in 187 pairings) input.
+
+    ## 14233 paired-reads (in 143 unique pairings) successfully merged out of 15355 (in 352 pairings) input.
+
+    ## 10528 paired-reads (in 120 unique pairings) successfully merged out of 11165 (in 278 pairings) input.
+
+    ## 11154 paired-reads (in 137 unique pairings) successfully merged out of 11797 (in 298 pairings) input.
+
+    ## 4349 paired-reads (in 85 unique pairings) successfully merged out of 4802 (in 179 pairings) input.
+
+    ## 17431 paired-reads (in 153 unique pairings) successfully merged out of 17812 (in 272 pairings) input.
+
+    ## 5850 paired-reads (in 81 unique pairings) successfully merged out of 6095 (in 159 pairings) input.
+
+    ## 3716 paired-reads (in 86 unique pairings) successfully merged out of 3894 (in 147 pairings) input.
+
+    ## 6865 paired-reads (in 99 unique pairings) successfully merged out of 7191 (in 187 pairings) input.
+
+    ## 4426 paired-reads (in 67 unique pairings) successfully merged out of 4603 (in 127 pairings) input.
+
+    ## 4576 paired-reads (in 101 unique pairings) successfully merged out of 4739 (in 174 pairings) input.
+
+    ## 6092 paired-reads (in 109 unique pairings) successfully merged out of 6315 (in 173 pairings) input.
+
+    ## 4269 paired-reads (in 20 unique pairings) successfully merged out of 4281 (in 28 pairings) input.
+
+``` r
+head(mergers[[1]])
+```
+
+    ##                                                                                                                                                                                                                                                       sequence
+    ## 1 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGCAGGCGGAAGATCAAGTCAGCGGTAAAATTGAGAGGCTCAACCTCTTCGAGCCGTTGAAACTGGTTTTCTTGAGTGAGCGAGAAGTATGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACTCCGATTGCGAAGGCAGCATACCGGCGCTCAACTGACGCTCATGCACGAAAGTGTGGGTATCGAACAGG
+    ## 2 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGTAGGCGGCCTGCCAAGTCAGCGGTAAAATTGCGGGGCTCAACCCCGTACAGCCGTTGAAACTGCCGGGCTCGAGTGGGCGAGAAGTATGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACCCCGATTGCGAAGGCAGCATACCGGCGCCCTACTGACGCTGAGGCACGAAAGTGCGGGGATCAAACAGG
+    ## 3 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGTAGGCGGGCTGTTAAGTCAGCGGTCAAATGTCGGGGCTCAACCCCGGCCTGCCGTTGAAACTGGCGGCCTCGAGTGGGCGAGAAGTATGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACTCCGATTGCGAAGGCAGCATACCGGCGCCCGACTGACGCTGAGGCACGAAAGCGTGGGTATCGAACAGG
+    ## 4 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGTAGGCGGGCTTTTAAGTCAGCGGTAAAAATTCGGGGCTCAACCCCGTCCGGCCGTTGAAACTGGGGGCCTTGAGTGGGCGAGAAGAAGGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACCCCGATTGCGAAGGCAGCCTTCCGGCGCCCTACTGACGCTGAGGCACGAAAGTGCGGGGATCGAACAGG
+    ## 5 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGCAGGCGGACTCTCAAGTCAGCGGTCAAATCGCGGGGCTCAACCCCGTTCCGCCGTTGAAACTGGGAGCCTTGAGTGCGCGAGAAGTAGGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACTCCGATTGCGAAGGCAGCCTACCGGCGCGCAACTGACGCTCATGCACGAAAGCGTGGGTATCGAACAGG
+    ## 6 TACGGAGGATGCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGTAGGCGGGATGCCAAGTCAGCGGTAAAAAAGCGGTGCTCAACGCCGTCGAGCCGTTGAAACTGGCGTTCTTGAGTGGGCGAGAAGTATGCGGAATGCGTGGTGTAGCGGTGAAATGCATAGATATCACGCAGAACTCCGATTGCGAAGGCAGCATACCGGCGCCCTACTGACGCTGAGGCACGAAAGCGTGGGTATCGAACAGG
+    ##   abundance forward reverse nmatch nmismatch nindel prefer accept
+    ## 1       579       1       1    148         0      0      1   TRUE
+    ## 2       470       2       2    148         0      0      2   TRUE
+    ## 3       449       3       4    148         0      0      1   TRUE
+    ## 4       430       4       3    148         0      0      2   TRUE
+    ## 5       345       5       6    148         0      0      1   TRUE
+    ## 6       282       6       5    148         0      0      2   TRUE
+
+\#Construction de la table ASV
+
+``` r
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+```
+
+    ## [1]  20 293
+
+``` r
+table(nchar(getSequences(seqtab)))
+```
+
+    ## 
+    ## 251 252 253 254 255 
+    ##   1  88 196   6   2
+
+nchar, qui correspond à la première ligne affichée, nous permet de voir
+la longueur des séquences. On voit qu’elle est comprise entre 251-255 ce
+qui, d’après le tutoriel, correspond à l’intervalle attendu pour les
+amplicons de la région V4.
+
+\#Retirer les chimères Les chimères sont des séquences artificielles
+formées pendant la PCR. Le but ici va donc être de retirer ces chimères
+qui ne correspondent à aucun organisme réel de l’échantillon mais qui
+ont été mises dans les ASV par DADA2 car il corrige les erreurs, mais
+pas les chimères.
+
+``` r
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+```
+
+    ## Identified 61 bimeras out of 293 input sequences.
+
+``` r
+dim(seqtab.nochim)
+```
+
+    ## [1]  20 232
+
+61 des ASV ont été retirés sur 293 ce qui peut correspondre à une grande
+quantité. Voici donc une seconde analyse:
+
+``` r
+sum(seqtab.nochim)/sum(seqtab)
+```
+
+    ## [1] 0.9640374
+
+Là, nous regardons au niveau des read et non que les ASV. On voit donc
+ici que environ 96% des reads restent et que les chimères ne
+correspondent qu’à seulement 4%. C’est un bon résultat.
+
+\#Tableau bilan Cela nous permet de faire un contrôle de chaque étape.
+S’il y a un grand saut dans l’exclusion de reads, cela nous permet de
+voir quelle étape et d’aller vérifier à ce niveau-là. Ce tableau permet
+de réaliser une correction de notre analyse sans devoir tout recommencer
+car on peut identifier l’étape où il y a eu un problème.
+
+``` r
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+    ##        input filtered denoisedF denoisedR merged nonchim
+    ## F3D0    7793     7113      6976      6979   6540    6528
+    ## F3D1    5869     5299      5227      5239   5028    5017
+    ## F3D141  5958     5463      5331      5357   4986    4863
+    ## F3D142  3183     2914      2799      2830   2595    2521
+    ## F3D143  3178     2941      2822      2868   2553    2519
+    ## F3D144  4827     4312      4151      4228   3646    3507
+
+On peut voir qu’il n’y a pas de chute brutale dans la conservation des
+reads. On peut donc dire qu’il n’y a pas de sélection trop stricte ou
+autre.
+
+\#Assigner la taxonomie Nous allons comparer chaque ASV à une base de
+référence. Cela va permettre d’identifier les ASV en leur attribuant un
+rang taxonomique. Choisir la base de référence se fait en fonction de ce
+que nous avons amplifié. Ici, le tutoriel nous donne le fichier à
+télécharger.
+
+``` r
+download.file("https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toGenus_trainset.fa.gz?download=1",
+              destfile = "silva_nr99_v138.2_toGenus_trainset.fa.gz", mode = "wb")
+```
+
+Je viens de télécharger le fichier et de le mettre dans mon répertoire.
+Je peux maintenant l’utiliser.
+
+``` r
+taxa <- assignTaxonomy(seqtab.nochim, "/home/rstudio/DADA2_final/silva_nr99_v138.2_toGenus_trainset.fa.gz", multithread=TRUE)
+```
+
+``` r
+taxa.print <- taxa # Removing sequence rownames for display only
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+
+    ##      Kingdom    Phylum         Class         Order           Family          
+    ## [1,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Muribaculaceae"
+    ## [2,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Muribaculaceae"
+    ## [3,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Muribaculaceae"
+    ## [4,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Muribaculaceae"
+    ## [5,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Bacteroidaceae"
+    ## [6,] "Bacteria" "Bacteroidota" "Bacteroidia" "Bacteroidales" "Muribaculaceae"
+    ##      Genus        
+    ## [1,] NA           
+    ## [2,] NA           
+    ## [3,] NA           
+    ## [4,] NA           
+    ## [5,] "Bacteroides"
+    ## [6,] NA
+
+On peut voir que dans les échantillons, il y a principalement des
+Bacteroidota.
+
+\#Contrôle de justesse On vient mesurer l’erreur du tutoriel sur un
+échantillon dont on connaît déjà la composition. C’est une étape de
+contrôle.
+
+``` r
+unqs.mock <- seqtab.nochim["Mock",]
+unqs.mock <- sort(unqs.mock[unqs.mock>0], decreasing=TRUE) # Drop ASVs absent in the Mock
+cat("DADA2 inferred", length(unqs.mock), "sample sequences present in the Mock community.\n")
+```
+
+    ## DADA2 inferred 20 sample sequences present in the Mock community.
+
+Il y a été trouvé 20 séquences qui font partie de cet échantillon
+fictif.
+
+``` r
+mock.ref <- getSequences(file.path(path, "HMP_MOCK.v35.fasta"))
+match.ref <- sum(sapply(names(unqs.mock), function(x) any(grepl(x, mock.ref))))
+cat("Of those,", sum(match.ref), "were exact matches to the expected reference sequences.\n")
+```
+
+    ## Of those, 20 were exact matches to the expected reference sequences.
+
+Les 20 séquences trouvées correspondent aux séquences de référence. Il
+n’y a donc pas d’erreur résiduelle dans ce tutoriel.
+
+\#Analyse avec phyloseq Phyloseq est un puissant outil d’analyse pour
+les données sur le microbiome. Il va permettre de regrouper toutes les
+tables que nous avons créées en un seul objet, avec en plus les
+métadonnées utilisées dans le tutoriel. Tout d’abord, il faut
+télécharger phyloseq.
+
+``` r
+install.packages("igraph", type = "source") 
+```
+
+    ## Installing package into '/usr/local/lib/R/site-library'
+    ## (as 'lib' is unspecified)
+
+``` r
+BiocManager::install("phyloseq", update = FALSE)
+```
+
+    ## 'getOption("repos")' replaces Bioconductor standard repositories, see
+    ## 'help("repositories", package = "BiocManager")' for details.
+    ## Replacement repositories:
+    ##     CRAN: https://p3m.dev/cran/__linux__/noble/latest
+
+    ## Bioconductor version 3.23 (BiocManager 1.30.27), R 4.6.1 (2026-06-24)
+
+    ## Warning: package(s) not installed when version(s) same as or greater than current; use
+    ##   `force = TRUE` to re-install: 'phyloseq'
+
+On va maintenant charger les packages.
+
+``` r
+library(phyloseq); packageVersion("phyloseq")
+```
+
+    ## [1] '1.56.0'
+
+``` r
+library(igraph)
+```
+
+    ## 
+    ## Attaching package: 'igraph'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     decompose, spectrum
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     union
+
+``` r
+BiocManager::install("phyloseq", update = FALSE)
+```
+
+    ## 'getOption("repos")' replaces Bioconductor standard repositories, see
+    ## 'help("repositories", package = "BiocManager")' for details.
+    ## Replacement repositories:
+    ##     CRAN: https://p3m.dev/cran/__linux__/noble/latest
+
+    ## Bioconductor version 3.23 (BiocManager 1.30.27), R 4.6.1 (2026-06-24)
+
+    ## Warning: package(s) not installed when version(s) same as or greater than current; use
+    ##   `force = TRUE` to re-install: 'phyloseq'
+
+``` r
+library(phyloseq); packageVersion("phyloseq")
+```
+
+    ## [1] '1.56.0'
+
+Il y a eu un beug à l’installation de phyloseq. J’ai donc d’abord
+vérifier qu’igraph été bien installer car physloseq en à besoin pour
+fonctionner puis j’ai réintaller phyloseq. Faisons la suite du
+chargement des packages.
+
+``` r
+library(Biostrings); packageVersion("Biostrings")
+```
+
+    ## Loading required package: BiocGenerics
+
+    ## Loading required package: generics
+
+    ## 
+    ## Attaching package: 'generics'
+
+    ## The following objects are masked from 'package:igraph':
+    ## 
+    ##     components, union
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+    ##     setequal, union
+
+    ## 
+    ## Attaching package: 'BiocGenerics'
+
+    ## The following objects are masked from 'package:igraph':
+    ## 
+    ##     normalize, path
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     IQR, mad, sd, var, xtabs
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    ##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    ##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+    ##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    ##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+    ##     unsplit, which.max, which.min
+
+    ## Loading required package: S4Vectors
+
+    ## Loading required package: stats4
+
+    ## 
+    ## Attaching package: 'S4Vectors'
+
+    ## The following object is masked from 'package:utils':
+    ## 
+    ##     findMatches
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     expand.grid, I, unname
+
+    ## Loading required package: IRanges
+
+    ## 
+    ## Attaching package: 'IRanges'
+
+    ## The following object is masked from 'package:phyloseq':
+    ## 
+    ##     distance
+
+    ## Loading required package: XVector
+
+    ## Loading required package: Seqinfo
+
+    ## 
+    ## Attaching package: 'Biostrings'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     strsplit
+
+    ## [1] '2.80.2'
+
+``` r
+library(ggplot2); packageVersion("ggplot2")
+```
+
+    ## [1] '4.0.3'
+
+``` r
+theme_set(theme_bw())
+```
+
+On va maintenant construire un tableau de métadonnées.
+
+``` r
+samples.out <- rownames(seqtab.nochim)
+subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
+gender <- substr(subject,1,1)
+subject <- substr(subject,2,999)
+day <- as.integer(sapply(strsplit(samples.out, "D"), `[`, 2))
+samdf <- data.frame(Subject=subject, Gender=gender, Day=day)
+samdf$When <- "Early"
+samdf$When[samdf$Day>100] <- "Late"
+rownames(samdf) <- samples.out
+```
+
+Ensuite, nous allons construire un objet phyloseq directement à partir
+des tables faites avec DADA2. Cela va tout reprendre, mis à part
+l’échantillon fictif que nous avions utilisé pour le contrôle de
+justesse.
+
+``` r
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
+               sample_data(samdf),
+               tax_table(taxa))
+ps <- prune_samples(sample_names(ps) != "Mock", ps) # Remove mock sample
+```
+
+``` r
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+ps
+```
+
+    ## phyloseq-class experiment-level object
+    ## otu_table()   OTU Table:         [ 232 taxa and 19 samples ]
+    ## sample_data() Sample Data:       [ 19 samples by 4 sample variables ]
+    ## tax_table()   Taxonomy Table:    [ 232 taxa by 6 taxonomic ranks ]
+    ## refseq()      DNAStringSet:      [ 232 reference sequences ]
+
+Cette dernière commande permet de donner des noms courts à nos ASV, ce
+qui rend plus simple l’analyse des graphiques/tableau que nous allons
+crée avec phyloseq. Les séquences entières sont stockées dans un
+fichier.
+
+On peut maintenant commencer à créer des graphiques avec phyloseq et a
+analyser nos données avec cet outil.
+
+``` r
+plot_richness(ps, x="Day", measures=c("Shannon", "Simpson"), color="When")
+```
+
+    ## Warning in estimate_richness(physeq, split = TRUE, measures = measures): The data you have provided does not have
+    ## any singletons. This is highly suspicious. Results of richness
+    ## estimates (for example) are probably unreliable, or wrong, if you have already
+    ## trimmed low-abundance taxa from the data.
+    ## 
+    ## We recommended that you find the un-trimmed data and retry.
+
+    ## Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+    ## ℹ Please use tidy evaluation idioms with `aes()`.
+    ## ℹ See also `vignette("ggplot2-in-packages")` for more information.
+    ## ℹ The deprecated feature was likely used in the phyloseq package.
+    ##   Please report the issue at <https://github.com/joey711/phyloseq/issues>.
+    ## This warning is displayed once per session.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
+Ce graphique nous permet d’observer la diversité alpha dans chaque
+échantillon. Il calcule les indices Shannon et Simpson. L’indice Shannon
+mesure la diversité d’un échantillon avec une sensibilité plus forte aux
+taxa rares. Et l’indice Simpson mesure la diversité en donnant plus de
+poids aux taxa dominants. On peut voir qu’il n’a pas de différence
+systématique entre Early et Late.
+
+``` r
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+```
+
+    ## Run 0 stress 0.08043117 
+    ## Run 1 stress 0.08616061 
+    ## Run 2 stress 0.08076343 
+    ## ... Procrustes: rmse 0.01059235  max resid 0.03261618 
+    ## Run 3 stress 0.08076337 
+    ## ... Procrustes: rmse 0.01049983  max resid 0.0323141 
+    ## Run 4 stress 0.1262108 
+    ## Run 5 stress 0.09477181 
+    ## Run 6 stress 0.08616061 
+    ## Run 7 stress 0.09477194 
+    ## Run 8 stress 0.08616061 
+    ## Run 9 stress 0.08616061 
+    ## Run 10 stress 0.08076337 
+    ## ... Procrustes: rmse 0.01050554  max resid 0.03233278 
+    ## Run 11 stress 0.08076337 
+    ## ... Procrustes: rmse 0.01050226  max resid 0.032322 
+    ## Run 12 stress 0.08076341 
+    ## ... Procrustes: rmse 0.0105715  max resid 0.03254776 
+    ## Run 13 stress 0.08043117 
+    ## ... Procrustes: rmse 6.378097e-06  max resid 1.575072e-05 
+    ## ... Similar to previous best
+    ## Run 14 stress 0.08616061 
+    ## Run 15 stress 0.09477211 
+    ## Run 16 stress 0.08076337 
+    ## ... Procrustes: rmse 0.01051626  max resid 0.03236772 
+    ## Run 17 stress 0.08616061 
+    ## Run 18 stress 0.101063 
+    ## Run 19 stress 0.1228545 
+    ## Run 20 stress 0.08076339 
+    ## ... Procrustes: rmse 0.01055113  max resid 0.03248139 
+    ## *** Best solution repeated 1 times
+
+``` r
+plot_ordination(ps.prop, ord.nmds.bray, color="When", title="Bray NMDS")
+```
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+Ici, ce graphe nous permet de voir si les groupes se regroupent autour
+d’une variable. C’est une ordination, cela veut dire que plus les points
+son proche moins ils ont de différence. En regardant le graphique, on
+peut voir que les points sont éloignés. Il y a donc une nette différence
+enter Early et Late.
+
+Cherchons ce qui explique cette différence, pour cela, on trace un
+nouveau graphe:
+
+``` r
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Day", fill="Family") + facet_wrap(~When, scales="free_x")
+```
+
+![](Clara_Levrault_CC_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+Il nous permet d’observer la répartition taxonomique des 20 premières
+séquences. On peut voir ici qu’aucun élément ne permit d’expliquer la
+différence observée plus tôt.
